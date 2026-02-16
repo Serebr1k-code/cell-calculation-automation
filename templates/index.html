@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Детекция клеток крови</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <aside id="sidebar" class="sidebar" aria-hidden="true">
+    <div class="sidebar-header">
+      <h2>Детекторы</h2>
+    </div>
+    <nav class="sidebar-nav">
+      <button type="button" class="detector-item" data-detector="blood">Клетки крови</button>
+    </nav>
+  </aside>
+
+  <div id="overlay" class="overlay"></div>
+
+  <main class="app">
+    <header class="topbar">
+      <button id="menuButton" class="menu-button" type="button" aria-label="Открыть меню" aria-expanded="false">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      <div class="brand">
+        <h1>Клетки крови</h1>
+      </div>
+    </header>
+
+    <section class="content">
+      <div class="field-tools">
+        <button id="undoPointButton" class="undo-button" type="button" disabled aria-label="Удалить последнюю точку">↶</button>
+      </div>
+
+      <div id="dropZone" class="dropzone">
+        <input id="fileInput" type="file" accept="image/*" hidden>
+        <div id="dropPrompt" class="drop-prompt">
+          Перетащите изображение сюда или нажмите для выбора файла
+        </div>
+        <svg id="regionsLayer" class="regions-layer" aria-hidden="true"></svg>
+        <svg id="cellsLayer" class="cells-layer" aria-hidden="true"></svg>
+        <svg id="linesLayer" class="lines-layer" aria-hidden="true"></svg>
+        <div id="pointsLayer" class="points-layer" aria-hidden="true"></div>
+        <img id="previewImage" class="preview-image" alt="Предпросмотр">
+      </div>
+
+      <div id="resultStats" class="result-stats" hidden>
+        <p id="cellsCountText" class="result-count"></p>
+        <p id="cellsPerMclText" class="result-count"></p>
+        <p id="cellsPerLText" class="result-count"></p>
+      </div>
+
+      <button id="processButton" class="process-button" type="button" disabled>Обработать</button>
+
+      <div id="progressContainer" class="progress-container" hidden>
+        <div class="progress-track">
+          <div id="progressBar" class="progress-bar"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
