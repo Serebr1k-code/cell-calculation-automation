@@ -6,31 +6,23 @@ import numpy as np
 from flask import Flask, jsonify, render_template, request
 
 def remove_duplicate_detections(cells, min_distance=7):
-    """
-    Удаляет дубликаты: оставляет только одну точку из каждой группы,
-    где расстояние между центрами < min_distance.
-    Использует пространственную сетку для скорости O(n).
-    """
+
     if not cells:
         return []
     
-    # Сетка размером min_distance × min_distance
     grid = {}
     unique_cells = []
     
     for cx, cy in cells:
-        # Определяем ячейку сетки
         gx = int(cx // min_distance)
         gy = int(cy // min_distance)
         
-        # Проверяем текущую и 8 соседних ячеек
         is_duplicate = False
         for dx in (-1, 0, 1):
             for dy in (-1, 0, 1):
                 neighbor_key = (gx + dx, gy + dy)
                 if neighbor_key in grid:
                     for (nx, ny) in grid[neighbor_key]:
-                        # Евклидово расстояние между центрами
                         if (cx - nx) ** 2 + (cy - ny) ** 2 < min_distance ** 2:
                             is_duplicate = True
                             break
@@ -45,15 +37,12 @@ def remove_duplicate_detections(cells, min_distance=7):
 
 
 def detect_erythrocytes(img, show_preview=False, draw_cells=True):
-    if img is None:
-        raise ValueError("Не удалось загрузить изображение")
     
     result_img = img.copy()
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     
-    # Параметры тайлинга
     tile_size, overlap = 512, 32
-    all_candidates = []  # Собираем ВСЕ кандидаты, фильтрацию делаем в конце
+    all_candidates = []
     
     total_tiles_y = (gray.shape[0] + tile_size - overlap - 1) // (tile_size - overlap)
     total_tiles_x = (gray.shape[1] + tile_size - overlap - 1) // (tile_size - overlap)
@@ -64,49 +53,38 @@ def detect_erythrocytes(img, show_preview=False, draw_cells=True):
             x2 = min(x + tile_size, gray.shape[1])
             tile = gray[y:y2, x:x2]
 
-            # Морфология для выделения "пончиков"
             kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
             blackhat = cv2.morphologyEx(tile, cv2.MORPH_BLACKHAT, kernel)
 
-            # Бинаризация
             _, thresh = cv2.threshold(blackhat, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
 
-            # Очистка шума
             kernel_small = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2, 2))
             thresh = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel_small)
 
-            # Связные компоненты
             num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(thresh, connectivity=8)
 
-            # Собираем ВСЕ кандидаты (и нормальные, и большие блобы)
             for i in range(1, num_labels):
                 area = stats[i, cv2.CC_STAT_AREA]
                 cx, cy = centroids[i]
 
-                # Нормальная клетка
                 if 20 < area < 80:
                     all_candidates.append((int(cx) + x, int(cy) + y))
 
-                # Большой блоб — разбиваем через distance transform
                 elif area >= 80:
                     blob_mask = (labels == i).astype(np.uint8) * 255
                     dist_transform = cv2.distanceTransform(blob_mask, cv2.DIST_L2, 5)
 
-                    # Находим локальные максимумы (центры потенциальных клеток)
                     _, sure_fg = cv2.threshold(dist_transform, 0.7 * dist_transform.max(), 255, 0)
                     sure_fg = np.uint8(sure_fg)
 
                     num_fg_labels, fg_labels, _, fg_centroids = cv2.connectedComponentsWithStats(sure_fg, connectivity=8)
 
-                    # Добавляем все найденные центры
                     for j in range(1, num_fg_labels):
                         fg_cx, fg_cy = fg_centroids[j]
                         all_candidates.append((int(fg_cx) + x, int(fg_cy) + y))
     
-    # === КРИТИЧЕСКИЙ ШАГ: удаление дубликатов ===
     cells = remove_duplicate_detections(all_candidates, min_distance=7)
     
-    # Рисуем результат
     if draw_cells:
         for (cx, cy) in cells:
             cv2.rectangle(
@@ -116,9 +94,6 @@ def detect_erythrocytes(img, show_preview=False, draw_cells=True):
                 color=(200, 255, 0),  # Светло-зелёный
                 thickness=1
             )
-    
-    print(f"\n✅ Найдено клеток до фильтрации: {len(all_candidates)}")
-    print(f"✅ Найдено клеток после удаления дубликатов: {len(cells)}")
     
     if show_preview:
         preview_h = min(800, int(800 * result_img.shape[0] / result_img.shape[1]))
