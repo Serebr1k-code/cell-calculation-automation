@@ -44,9 +44,6 @@ def detect_erythrocytes(img, show_preview=False, draw_cells=True):
     tile_size, overlap = 512, 32
     all_candidates = []
     
-    total_tiles_y = (gray.shape[0] + tile_size - overlap - 1) // (tile_size - overlap)
-    total_tiles_x = (gray.shape[1] + tile_size - overlap - 1) // (tile_size - overlap)
-    
     for y in range(0, gray.shape[0], tile_size - overlap):
         for x in range(0, gray.shape[1], tile_size - overlap):
             y2 = min(y + tile_size, gray.shape[0])
